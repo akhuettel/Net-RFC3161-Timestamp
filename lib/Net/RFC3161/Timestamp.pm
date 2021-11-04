@@ -158,7 +158,7 @@ sub write_response_to_file {
 
 =head2 attest_file
 
- attest_file($in_file, $out_file, $hash_algo, $policy, $verbose);
+ attest_file($in_file, $out_file, $tsa, $hash_algo, $policy, $verbose);
 
 Obtain an attested timestamp for $in_file and place it into $out_file, using
 the hash algorithm $hash_algo and the policy $policy.
@@ -168,6 +168,7 @@ the hash algorithm $hash_algo and the policy $policy.
 sub attest_file {
     my $in_file = shift;
     my $out_file = shift;
+    my $tsa = shift;
     my $hash_algo = shift;
     my $policy = shift;
     my $verbose = shift;
@@ -178,7 +179,7 @@ sub attest_file {
         dump_ts("query", $req_buf);
     }
 
-    my $res_buf = post_request_to_tsa($req_buf, $tsa);
+    my $res_buf = post_request($req_buf, $tsa);
     if ($verbose) {
         say("received timestamp reply follows:");
         dump_ts("reply", $res_buf);

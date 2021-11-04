@@ -28,7 +28,7 @@
 
 use warnings;
 use strict;
-use 5.20;
+use 5.020;
 use Net::RFC3161::Timestamp;
 use Getopt::Long qw(:config bundling no_ignore_case);
 
@@ -36,7 +36,7 @@ sub usage {
     my $tsas=list_tsas();
     
     print "$_\n" for (
-    "Usage: $::arg0 [-h ALGO] INPUT...",
+    "Usage: timestamp [-h ALGO] INPUT...",
     "",
     "  -h, --hash ALGO",
     "  -p, --policy OID",
@@ -66,6 +66,6 @@ if (!@ARGV) {
 }
 
 for my $in_file (@ARGV) {
-    $out_file = "$in_file.tsr";
-    attest_file($in_file, $out_file, $hash_algo, $policy, $verbose);
+    $out_file = "$in_file.ts";
+    attest_file($in_file, $out_file, $tsa, $hash_algo, $policy, $verbose);
 }
