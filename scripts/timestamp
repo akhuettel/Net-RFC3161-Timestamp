@@ -32,16 +32,13 @@ use 5.20;
 use Net::RFC3161::Timestamp;
 use Getopt::Long qw(:config bundling no_ignore_case);
 
-my $DEF_TSA = "startcom";
-
 sub usage {
     my $tsas=list_tsas();
     
     print "$_\n" for (
-    "Usage: $::arg0 [-h ALGO] [-o OUTPUT] INPUT...",
+    "Usage: $::arg0 [-h ALGO] INPUT...",
     "",
     "  -h, --hash ALGO",
-    "  -o, --output FILE",
     "  -p, --policy OID",
     "  -t, --tsa TSA",
     "  -v, --verbose",
@@ -50,7 +47,7 @@ sub usage {
     );
 }
 
-my $tsa = "digicert";
+my $tsa = "dfn.de";
 my $hash_algo;
 my $policy;
 my $out_file;
@@ -59,53 +56,16 @@ my $verbose;
 GetOptions(
     "help" => sub { usage(); exit; },
     "h|hash=s" => \$hash_algo,
-    "o|output=s" => \$out_file,
     "p|policy=s" => \$policy,
     "t|tsa=s" => \$tsa,
     "v|verbose!" => \$verbose,
 ) or exit(2);
-
-if ($out_file && @ARGV > 1) {
-    die("--output only makes sense with one input file");
-}
-
-if ($tsa !~ m!^https?://!) {
-    if ($TSAs{$tsa}) {
-        $tsa = $TSAs{$tsa};
-    } else {
-        die("unknown TSA '$tsa'");
-    }
-}
 
 if (!@ARGV) {
     die("no files provided");
 }
 
 for my $in_file (@ARGV) {
-    if (!-f $in_file) {
-        _err("file '$in_file' not found");
-        next;
-    }
-
-    $out_file //= "$in_file.tsr";
-    _log("requesting timestamp for '$in_file'");
-
-    my $req_buf = make_request_for_file($in_file, $hash_algo, $policy);
-    if ($verbose) {
-        say("generated timestamp query follows:");
-        dump_ts("query", $req_buf);
-    }
-
-    my $res_buf = post_request_to_tsa($req_buf, $tsa);
-    if ($verbose) {
-        _info("received timestamp reply follows:");
-        dump_ts("reply", $res_buf);
-    }
-
-    write_response_to_file($res_buf, $out_file);
-    _info("wrote signed timestamp to '$out_file'");
-    $out_file = undef;
+    $out_file = "$in_file.tsr";
+    attest_file($in_file, $out_file, $hash_algo, $policy, $verbose);
 }
-
-_exit();
-# vim: ts=4:sw=4:et

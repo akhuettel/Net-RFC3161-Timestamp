@@ -1,5 +1,4 @@
 package Net::RFC3161::Timestamp;
-
 # ABSTRACT: Utility functions to request RFC3161 timestamps
 
 use strict;
@@ -9,8 +8,8 @@ use Carp;
 use HTTP::Request;
 use LWP::UserAgent;
 
-our @EXPORT    = qw(list_tsas);
-our @EXPORT_OK = qw(dump_ts);
+our @EXPORT    = qw(list_tsas attest_file);
+our @EXPORT_OK = qw(dump_ts make_request_for_file post_request write_response_to_file);
 
 
 =head2 list_tsas
@@ -58,9 +57,17 @@ sub dump_ts {
     }
 }
 
+=head2 make_request_for_file
+
+ my $req_buf = make_request_for_file($in_file, $hash_algo, $policy);
+
+Generate a timestamp request for a file and place it into $req_buf.
+
+=cut
+
 sub make_request_for_file {
     my ($file, $hash_algo, $policy) = @_;
-    $hash_algo //= "sha256";
+    $hash_algo //= "sha512";
 
     my @cmd = ("openssl", "ts", "-query",
                                 "-data" => $file,
@@ -81,9 +88,31 @@ sub make_request_for_file {
     }
 }
 
+=head2 post_request
+
+ my $res_buf = post_request_to_tsa($req_buf, $tsa);
+
+Post a timestamp request to a timestamping authority and retrieve the result.
+
+$tsa can either be the name of a timestamping authority from the above table
+or directly a https URL.
+
+=cut
+
 sub post_request {
     my ($req_buf, $tsa_url) = @_;
+    
+    croak "no timestamping request given" unless defined $req_buf;
+    $tsa_url //= "dfn.de";
 
+    if ($tsa_url !~ m!^https?://!) {
+        if ($TSAs{$tsa_url}) {
+            $tsa_url = $TSAs{$tsa_url};
+        } else {
+            croak("unknown timestamping authority '$tsa_url'");
+        }
+    }
+    
     my $ua = LWP::UserAgent->new;
 
     my $req = HTTP::Request->new("POST", $tsa_url);
@@ -107,6 +136,14 @@ sub post_request {
     }
 }
 
+=head2 write_response_to_file
+
+ write_response_to_file($res_buf, $out_file);
+
+Write the timestamp to a result file.
+
+=cut
+
 sub write_response_to_file {
     my ($res_buf, $file) = @_;
 
@@ -119,5 +156,38 @@ sub write_response_to_file {
     }
 }
 
+=head2 attest_file
+
+ attest_file($in_file, $out_file, $hash_algo, $policy, $verbose);
+
+Obtain an attested timestamp for $in_file and place it into $out_file, using
+the hash algorithm $hash_algo and the policy $policy.
+
+=cut
+
+sub attest_file {
+    my $in_file = shift;
+    my $out_file = shift;
+    my $hash_algo = shift;
+    my $policy = shift;
+    my $verbose = shift;
+
+    my $req_buf = make_request_for_file($in_file, $hash_algo, $policy);
+    if ($verbose) {
+        say("generated timestamp query follows:");
+        dump_ts("query", $req_buf);
+    }
+
+    my $res_buf = post_request_to_tsa($req_buf, $tsa);
+    if ($verbose) {
+        say("received timestamp reply follows:");
+        dump_ts("reply", $res_buf);
+    }
+
+    write_response_to_file($res_buf, $out_file);
+    if ($verbose) {
+        say("wrote signed timestamp to '$out_file'");
+    }
+}
 
 1;
