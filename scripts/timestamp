@@ -1,4 +1,6 @@
 #!/usr/bin/env perl
+# PODNAME: timestamp.pl
+# ABSTRACT: Utility to request RFC3161 timestamps for files
 
 #
 # Originally based on timestamp 
