@@ -95,7 +95,7 @@ sub make_request_for_file {
 Post a timestamp request to a timestamping authority and retrieve the result.
 
 $tsa can either be the name of a timestamping authority from the above table
-or directly a https URL.
+or directly a http URL.
 
 =cut
 
